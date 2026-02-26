@@ -1,0 +1,73 @@
+name: Deploy Frontend (Existing Azure VM via SSH)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+
+    # 🟢 Temporary GitHub VM
+    runs-on: ubuntu-latest
+
+    env:
+      APP_DIR: /home/frontenduser/Github-Actions
+      PM2_APP_NAME: frontend-app
+
+    steps:
+
+      # 1️⃣ Checkout latest code on temporary GitHub VM
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+
+      # 2️⃣ Setup SSH key on temporary VM
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+
+      # 3️⃣ Copy latest code to your Azure VM
+      - name: Copy code to Azure VM
+        run: |
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            ./ \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.APP_DIR }}/
+
+
+      # 4️⃣ Install, Build and Restart on YOUR VM
+      - name: Deploy on Azure VM
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
+
+            set -e
+
+            cd /home/frontenduser/Github-Actions
+
+            echo "📦 Installing dependencies..."
+            npm install
+
+            echo "🏗 Building frontend..."
+            npm run build
+
+            echo "🔁 Restarting PM2..."
+
+            if pm2 describe frontend-app > /dev/null 2>&1; then
+              pm2 restart frontend-app
+            else
+              pm2 start serve --name frontend-app -- -s dist -l 3000
+            fi
+
+            pm2 save
+
+            echo "✅ Deployment Completed!"
+
+          ENDSSH
