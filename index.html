@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>App Launcher</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      padding: 2rem;
+    }
+
+    .hero-badge {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 50px;
+      padding: 6px 18px;
+      font-size: 0.78rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #a78bfa;
+      margin-bottom: 1.2rem;
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      font-weight: 700;
+      text-align: center;
+      background: linear-gradient(90deg, #c084fc, #60a5fa, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.6rem;
+    }
+
+    p.subtitle {
+      color: rgba(255,255,255,0.55);
+      text-align: center;
+      font-size: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+      position: relative;
+      overflow: hidden;
+      text-decoration: none;
+      color: white;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--glow);
+      opacity: 0;
+      transition: opacity 0.3s;
+      border-radius: 20px;
+    }
+
+    .card:hover::before { opacity: 0.08; }
+
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+      background: rgba(255,255,255,0.09);
+      border-color: rgba(255,255,255,0.25);
+    }
+
+    .card .icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .card h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+
+    .card p {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.5;
+    }
+
+    .tag {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 3px 12px;
+      border-radius: 50px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: var(--tag-bg);
+      color: var(--tag-color);
+    }
+
+    .open-btn {
+      margin-top: 0.75rem;
+      display: inline-block;
+      background: linear-gradient(135deg, var(--btn1), var(--btn2));
+      color: white;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 8px 20px;
+      border-radius: 50px;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .open-btn:hover { opacity: 0.85; }
+
+    footer {
+      margin-top: 3rem;
+      color: rgba(255,255,255,0.3);
+      font-size: 0.78rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hero-badge">🚀 App Launcher</div>
+  <h1>Open Your Applications</h1>
+  <p class="subtitle">Click on any card below to open the application in a new tab</p>
+
+  <div class="grid">
+
+    <!-- GitHub -->
+    <a class="card" href="https://github.com" target="_blank"
+       style="--glow: linear-gradient(135deg,#fff,#ccc); --btn1:#555; --btn2:#222; --tag-bg:rgba(255,255,255,0.1); --tag-color:#ddd;">
+      <div class="icon">🐙</div>
+      <h3>GitHub</h3>
+      <p>Open your GitHub repositories and manage source code.</p>
+      <div class="tag">Source Control</div><br/>
+      <span class="open-btn">Open App →</span>
+    </a>
+
+    <!-- Google -->
+    <a class="card" href="https://www.google.com" target="_blank"
+       style="--glow: linear-gradient(135deg,#4285F4,#EA4335); --btn1:#4285F4; --btn2:#0F9D58; --tag-bg:rgba(66,133,244,0.2); --tag-color:#93c5fd;">
+      <div class="icon">🔍</div>
+      <h3>Google</h3>
+      <p>Search the web and access Google services instantly.</p>
+      <div class="tag">Search Engine</div><br/>
+      <span class="open-btn">Open App →</span>
+    </a>
+
+    <!-- Localhost API -->
+    <a class="card" href="http://localhost:3000" target="_blank"
+       style="--glow: linear-gradient(135deg,#10b981,#059669); --btn1:#10b981; --btn2:#047857; --tag-bg:rgba(16,185,129,0.15); --tag-color:#6ee7b7;">
+      <div class="icon">⚙️</div>
+      <h3>Local API Server</h3>
+      <p>Access your locally running Node.js or Express API server.</p>
+      <div class="tag">localhost:3000</div><br/>
+      <span class="open-btn">Open App →</span>
+    </a>
+
+    <!-- Localhost Frontend -->
+    <a class="card" href="http://localhost:5173" target="_blank"
+       style="--glow: linear-gradient(135deg,#6366f1,#8b5cf6); --btn1:#6366f1; --btn2:#7c3aed; --tag-bg:rgba(99,102,241,0.2); --tag-color:#c4b5fd;">
+      <div class="icon">🌐</div>
+      <h3>Local Frontend</h3>
+      <p>Open your Vite / React / Vue frontend running locally.</p>
+      <div class="tag">localhost:5173</div><br/>
+      <span class="open-btn">Open App →</span>
+    </a>
+
+    <!-- YouTube -->
+    <a class="card" href="https://www.youtube.com" target="_blank"
+       style="--glow: linear-gradient(135deg,#ff0000,#cc0000); --btn1:#ff0000; --btn2:#b91c1c; --tag-bg:rgba(255,0,0,0.15); --tag-color:#fca5a5;">
+      <div class="icon">▶️</div>
+      <h3>YouTube</h3>
+      <p>Watch videos, tutorials and stay up to date with content.</p>
+      <div class="tag">Media</div><br/>
+      <span class="open-btn">Open App →</span>
+    </a>
+
+    <!-- Custom App -->
+    <a class="card" href="http://localhost:8080" target="_blank"
+       style="--glow: linear-gradient(135deg,#f59e0b,#d97706); --btn1:#f59e0b; --btn2:#b45309; --tag-bg:rgba(245,158,11,0.15); --tag-color:#fcd34d;">
+      <div class="icon">🛠️</div>
+      <h3>Custom App</h3>
+      <p>Your custom application running on port 8080.</p>
+      <div class="tag">localhost:8080</div><br/>
+      <span class="open-btn">Open App →</span>
+    </a>
+
+  </div>
+
+  <footer>
+    &copy; 2026 App Launcher &mdash; Built with ❤️ | Click any card to open the app
+  </footer>
+
+</body>
+</html>
