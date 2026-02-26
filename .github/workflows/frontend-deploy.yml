@@ -17,43 +17,44 @@ jobs:
     steps:
 
       # ------------------------------------------------------------
-      # STEP 1 — Checkout latest code into temporary GitHub VM
+      # STEP 1 — Checkout code on temporary GitHub VM
       # ------------------------------------------------------------
       - name: Checkout Code
         uses: actions/checkout@v4
 
 
       # ------------------------------------------------------------
-      # STEP 2 — Setup SSH securely on temporary VM
+      # STEP 2 — Setup SSH on GitHub runner
       # ------------------------------------------------------------
       - name: Setup SSH
         run: |
           echo "🔐 Setting up SSH..."
 
-          mkdir -p $HOME/.ssh
+          mkdir -p /home/runner/.ssh
 
-          printf "%s\n" "${{ secrets.SSH_PRIVATE_KEY }}" > $HOME/.ssh/deploy_key
+          printf "%s\n" "${{ secrets.SSH_PRIVATE_KEY }}" > /home/runner/.ssh/deploy_key
 
-          chmod 600 $HOME/.ssh/deploy_key
+          chmod 600 /home/runner/.ssh/deploy_key
 
-          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> $HOME/.ssh/known_hosts
+          # Disable strict checking (safe for CI)
+          echo -e "Host *\n\tStrictHostKeyChecking no\n" > /home/runner/.ssh/config
 
           echo "✅ SSH Ready"
 
 
       # ------------------------------------------------------------
-      # STEP 3 — Copy latest code to your Azure VM
+      # STEP 3 — Copy code to Azure VM
       # ------------------------------------------------------------
       - name: Copy Code to Azure VM
         run: |
           echo "📂 Syncing files to Azure VM..."
 
           rsync -avz --delete \
-            -e "ssh -i $HOME/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            -e "ssh -i /home/runner/.ssh/deploy_key -o StrictHostKeyChecking=no" \
             ./ \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.APP_DIR }}/
 
-          echo "✅ Code Synced"
+          echo "✅ Code Synced Successfully"
 
 
       # ------------------------------------------------------------
@@ -63,7 +64,7 @@ jobs:
         run: |
           echo "🚀 Deploying on Azure VM..."
 
-          ssh -i $HOME/.ssh/deploy_key \
+          ssh -i /home/runner/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
 
@@ -90,4 +91,3 @@ jobs:
             echo "✅ Deployment Completed Successfully!"
 
           ENDSSH
-          
