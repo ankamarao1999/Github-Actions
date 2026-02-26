@@ -1,4 +1,4 @@
-name: Deploy Frontend (Existing Azure VM via SSH)
+name: Deploy Frontend (Azure VM via SSH)
 
 on:
   push:
@@ -8,8 +8,6 @@ on:
 
 jobs:
   deploy:
-
-    # 🟢 Temporary GitHub VM
     runs-on: ubuntu-latest
 
     env:
@@ -18,33 +16,54 @@ jobs:
 
     steps:
 
-      # 1️⃣ Checkout latest code on temporary GitHub VM
-      - name: Checkout code
+      # ------------------------------------------------------------
+      # STEP 1 — Checkout latest code into temporary GitHub VM
+      # ------------------------------------------------------------
+      - name: Checkout Code
         uses: actions/checkout@v4
 
 
-      # 2️⃣ Setup SSH key on temporary VM
+      # ------------------------------------------------------------
+      # STEP 2 — Setup SSH securely on temporary VM
+      # ------------------------------------------------------------
       - name: Setup SSH
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+          echo "🔐 Setting up SSH..."
+
+          mkdir -p $HOME/.ssh
+
+          printf "%s\n" "${{ secrets.SSH_PRIVATE_KEY }}" > $HOME/.ssh/deploy_key
+
+          chmod 600 $HOME/.ssh/deploy_key
+
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> $HOME/.ssh/known_hosts
+
+          echo "✅ SSH Ready"
 
 
-      # 3️⃣ Copy latest code to your Azure VM
-      - name: Copy code to Azure VM
+      # ------------------------------------------------------------
+      # STEP 3 — Copy latest code to your Azure VM
+      # ------------------------------------------------------------
+      - name: Copy Code to Azure VM
         run: |
+          echo "📂 Syncing files to Azure VM..."
+
           rsync -avz --delete \
-            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            -e "ssh -i $HOME/.ssh/deploy_key -o StrictHostKeyChecking=no" \
             ./ \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.APP_DIR }}/
 
+          echo "✅ Code Synced"
 
-      # 4️⃣ Install, Build and Restart on YOUR VM
-      - name: Deploy on Azure VM
+
+      # ------------------------------------------------------------
+      # STEP 4 — SSH into Azure VM and Deploy
+      # ------------------------------------------------------------
+      - name: Install, Build & Restart on Azure VM
         run: |
-          ssh -i ~/.ssh/deploy_key \
+          echo "🚀 Deploying on Azure VM..."
+
+          ssh -i $HOME/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
 
@@ -68,6 +87,6 @@ jobs:
 
             pm2 save
 
-            echo "✅ Deployment Completed!"
+            echo "✅ Deployment Completed Successfully!"
 
           ENDSSH
