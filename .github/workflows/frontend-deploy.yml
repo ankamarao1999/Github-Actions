@@ -24,22 +24,14 @@ jobs:
 
 
       # ------------------------------------------------------------
-      # STEP 2 — Setup SSH on GitHub runner
+      # STEP 2 — Setup SSH (FIXED VERSION)
       # ------------------------------------------------------------
       - name: Setup SSH
         run: |
-          echo "🔐 Setting up SSH..."
-
-          mkdir -p /home/runner/.ssh
-
-          printf "%s\n" "${{ secrets.SSH_PRIVATE_KEY }}" > /home/runner/.ssh/deploy_key
-
-          chmod 600 /home/runner/.ssh/deploy_key
-
-          # Disable strict checking (safe for CI)
-          echo -e "Host *\n\tStrictHostKeyChecking no\n" > /home/runner/.ssh/config
-
-          echo "✅ SSH Ready"
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
 
 
       # ------------------------------------------------------------
@@ -50,7 +42,7 @@ jobs:
           echo "📂 Syncing files to Azure VM..."
 
           rsync -avz --delete \
-            -e "ssh -i /home/runner/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            -e "ssh -i ~/.ssh/id_rsa" \
             ./ \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.APP_DIR }}/
 
@@ -64,8 +56,7 @@ jobs:
         run: |
           echo "🚀 Deploying on Azure VM..."
 
-          ssh -i /home/runner/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
+          ssh -i ~/.ssh/id_rsa \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
 
             set -e
@@ -80,15 +71,14 @@ jobs:
 
             echo "🔁 Restarting PM2..."
 
-            if pm2 describe frontend-app > /dev/null 2>&1; then
-              pm2 restart frontend-app
+            if pm2 describe frontend > /dev/null 2>&1; then
+              pm2 restart frontend
             else
-              pm2 start serve --name frontend-app -- -s dist -l 3000
+              pm2 start serve --name frontend -- -s dist -l 3000
             fi
 
             pm2 save
 
             echo "✅ Deployment Completed Successfully!"
-          ENDSSH
 
-          
+          ENDSSH
