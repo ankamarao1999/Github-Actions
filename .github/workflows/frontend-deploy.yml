@@ -1,10 +1,13 @@
-name: Deploy Frontend (Azure VM via SSH)
+name: Deploy Frontend (Auto Tag After Deploy)
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+
+permissions:
+  contents: write   # Required to push tag
 
 jobs:
   deploy:
@@ -15,16 +18,13 @@ jobs:
 
     steps:
 
-      # ------------------------------------------------------------
-      # STEP 1 — Checkout Code
-      # ------------------------------------------------------------
+      # STEP 1 — Checkout
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-
-      # ------------------------------------------------------------
-      # STEP 2 — Setup SSH (ED25519)
-      # ------------------------------------------------------------
+      # STEP 2 — Setup SSH
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -32,14 +32,9 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
 
-
-      # ------------------------------------------------------------
-      # STEP 3 — Copy Source Code (Exclude node_modules & dist)
-      # ------------------------------------------------------------
+      # STEP 3 — Sync Files
       - name: Sync Files to Azure VM
         run: |
-          echo "📂 Syncing files to Azure VM..."
-
           rsync -avz --delete \
             --exclude 'node_modules' \
             --exclude 'dist' \
@@ -48,42 +43,35 @@ jobs:
             ./ \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.APP_DIR }}/
 
-          echo "✅ Code Synced Successfully"
-
-
-      # ------------------------------------------------------------
-      # STEP 4 — Install, Build & Restart PM2
-      # ------------------------------------------------------------
+      # STEP 4 — Deploy
       - name: Deploy on Azure VM
         run: |
-          echo "🚀 Deploying on Azure VM..."
-
           ssh -i ~/.ssh/id_ed25519 \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
-
             set -e
-
             cd /home/frontenduser/Github-Actions
-
-            echo "🧹 Cleaning old build..."
             rm -rf node_modules dist
-
-            echo "📦 Installing dependencies..."
             npm install
-
-            echo "🏗 Building frontend..."
             npm run build
-
-            echo "🔁 Restarting PM2..."
 
             if pm2 describe frontend > /dev/null 2>&1; then
               pm2 restart frontend
             else
               pm2 start serve --name frontend -- -s dist -l 3000
             fi
-
             pm2 save
-
-            echo "✅ Deployment Completed Successfully!"
-
           ENDSSH
+
+      # STEP 5 — Auto Create ISO Tag
+      - name: Create ISO Date-Time Tag
+        if: success()
+        run: |
+          TAG_NAME="release-$(date -u +'%Y-%m-%dT%H-%M-%S')"
+
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
+
+          echo "✅ Tag Created: $TAG_NAME"
