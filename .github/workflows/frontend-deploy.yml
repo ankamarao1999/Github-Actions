@@ -15,12 +15,16 @@ jobs:
 
     steps:
 
+      # ------------------------------------------------------------
       # STEP 1 — Checkout Code
+      # ------------------------------------------------------------
       - name: Checkout Code
         uses: actions/checkout@v4
 
 
-      # STEP 2 — Setup SSH (USE ED25519)
+      # ------------------------------------------------------------
+      # STEP 2 — Setup SSH (ED25519)
+      # ------------------------------------------------------------
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -29,12 +33,17 @@ jobs:
           echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
 
 
-      # STEP 3 — Copy Code to Azure VM
-      - name: Copy Code to Azure VM
+      # ------------------------------------------------------------
+      # STEP 3 — Copy Source Code (Exclude node_modules & dist)
+      # ------------------------------------------------------------
+      - name: Sync Files to Azure VM
         run: |
           echo "📂 Syncing files to Azure VM..."
 
           rsync -avz --delete \
+            --exclude 'node_modules' \
+            --exclude 'dist' \
+            --exclude '.git' \
             -e "ssh -i ~/.ssh/id_ed25519" \
             ./ \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.APP_DIR }}/
@@ -42,8 +51,10 @@ jobs:
           echo "✅ Code Synced Successfully"
 
 
-      # STEP 4 — SSH into Azure VM and Deploy
-      - name: Install, Build & Restart on Azure VM
+      # ------------------------------------------------------------
+      # STEP 4 — Install, Build & Restart PM2
+      # ------------------------------------------------------------
+      - name: Deploy on Azure VM
         run: |
           echo "🚀 Deploying on Azure VM..."
 
@@ -54,8 +65,16 @@ jobs:
 
             cd /home/frontenduser/Github-Actions
 
+            echo "🧹 Cleaning old build..."
+            rm -rf node_modules dist
+
+            echo "📦 Installing dependencies..."
             npm install
+
+            echo "🏗 Building frontend..."
             npm run build
+
+            echo "🔁 Restarting PM2..."
 
             if pm2 describe frontend > /dev/null 2>&1; then
               pm2 restart frontend
