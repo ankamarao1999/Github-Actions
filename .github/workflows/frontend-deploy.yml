@@ -12,64 +12,50 @@ jobs:
 
     env:
       APP_DIR: /home/frontenduser/Github-Actions
-      PM2_APP_NAME: frontend-app
 
     steps:
 
-      # ------------------------------------------------------------
-      # STEP 1 — Checkout code on temporary GitHub VM
-      # ------------------------------------------------------------
+      # STEP 1 — Checkout Code
       - name: Checkout Code
         uses: actions/checkout@v4
 
 
-      # ------------------------------------------------------------
-      # STEP 2 — Setup SSH (FIXED VERSION)
-      # ------------------------------------------------------------
+      # STEP 2 — Setup SSH (USE ED25519)
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
           echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
 
 
-      # ------------------------------------------------------------
-      # STEP 3 — Copy code to Azure VM
-      # ------------------------------------------------------------
+      # STEP 3 — Copy Code to Azure VM
       - name: Copy Code to Azure VM
         run: |
           echo "📂 Syncing files to Azure VM..."
 
           rsync -avz --delete \
-            -e "ssh -i ~/.ssh/id_rsa" \
+            -e "ssh -i ~/.ssh/id_ed25519" \
             ./ \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.APP_DIR }}/
 
           echo "✅ Code Synced Successfully"
 
 
-      # ------------------------------------------------------------
       # STEP 4 — SSH into Azure VM and Deploy
-      # ------------------------------------------------------------
       - name: Install, Build & Restart on Azure VM
         run: |
           echo "🚀 Deploying on Azure VM..."
 
-          ssh -i ~/.ssh/id_rsa \
+          ssh -i ~/.ssh/id_ed25519 \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
 
             set -e
 
             cd /home/frontenduser/Github-Actions
 
-            echo "📦 Installing dependencies..."
             npm install
-
-            echo "🏗 Building frontend..."
             npm run build
-
-            echo "🔁 Restarting PM2..."
 
             if pm2 describe frontend > /dev/null 2>&1; then
               pm2 restart frontend
