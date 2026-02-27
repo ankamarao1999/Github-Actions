@@ -1,4 +1,4 @@
-name: Deploy Frontend (Main + Tag + Auto Tag 12hr)
+name: Deploy Frontend (Branch + Tag Smart Deployment)
 
 on:
   push:
@@ -20,17 +20,13 @@ jobs:
 
     steps:
 
-      # ------------------------------------------------------------
-      # STEP 1 — Checkout Code
-      # ------------------------------------------------------------
+      # STEP 1 — Checkout
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # ------------------------------------------------------------
       # STEP 2 — Setup SSH
-      # ------------------------------------------------------------
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -38,37 +34,29 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
 
-      # ------------------------------------------------------------
-      # STEP 3 — Deploy (Branch or Tag Based)
-      # ------------------------------------------------------------
+      # STEP 3 — Sync Files
+      - name: Sync Files to Azure VM
+        run: |
+          rsync -avz --delete \
+            --exclude 'node_modules' \
+            --exclude 'dist' \
+            --exclude '.git' \
+            -e "ssh -i ~/.ssh/id_ed25519" \
+            ./ \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.APP_DIR }}/
+
+      # STEP 4 — Deploy
       - name: Deploy on Azure VM
         run: |
           ssh -i ~/.ssh/id_ed25519 \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << ENDSSH
-
             set -e
             cd /home/frontenduser/Github-Actions
-            git fetch --all --tags
 
-            if [ "${{ github.ref_type }}" = "tag" ]; then
-              echo "🚀 Deploying TAG: ${{ github.ref_name }}"
-              git checkout ${{ github.ref_name }}
-            else
-              echo "🚀 Deploying MAIN branch"
-              git checkout main
-              git pull origin main
-            fi
-
-            echo "🧹 Cleaning old build..."
             rm -rf node_modules dist
-
-            echo "📦 Installing dependencies..."
             npm install
-
-            echo "🏗 Building frontend..."
             npm run build
 
-            echo "🔁 Restarting PM2..."
             if pm2 describe frontend > /dev/null 2>&1; then
               pm2 restart frontend
             else
@@ -76,18 +64,13 @@ jobs:
             fi
 
             pm2 save
-
-            echo "✅ Deployment Completed"
-
           ENDSSH
 
-      # ------------------------------------------------------------
-      # STEP 4 — Auto Create Tag (Only for Main Push)
-      # ------------------------------------------------------------
-      - name: Create 12hr ISO Tag After Successful Main Deployment
+      # STEP 5 — Create Tag Only If Branch Push
+      - name: Create Date-Time Tag After Branch Deploy
         if: success() && github.ref_type == 'branch'
         run: |
-          TAG_NAME="release-$(date -u +'%Y-%m-%dT%I-%M-%S-%p')"
+          TAG_NAME="release-$(date -u +'%Y-%m-%dT%H-%M-%S')"
 
           git config user.name "github-actions"
           git config user.email "actions@github.com"
@@ -95,4 +78,4 @@ jobs:
           git tag $TAG_NAME
           git push origin $TAG_NAME
 
-          echo "✅ Tag Created: $TAG_NAME"
+          echo "Tag Created: $TAG_NAME"
