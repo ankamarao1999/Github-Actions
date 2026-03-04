@@ -22,16 +22,16 @@ jobs:
 
       # STEP 1 — Checkout
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4  #Download the repository code into the GitHub runner.
         with:
-          fetch-depth: 0
+          fetch-depth: 0 #latest commit
 
       # STEP 2 — Setup SSH
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519 
+          chmod 600 ~/.ssh/id_ed25519   
           echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
 
       # STEP 3 — Sync Files
